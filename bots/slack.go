@@ -92,14 +92,15 @@ func listen(events chan<- Job) {
 func listener(events <-chan Job) {
 	for job := range events {
 		id := job.Details.ID
-		if job.Details.User == "root" {
+		if job.Details.User == "root" || job.Details.User == "produser" || job.Details.User == "mapred" ||
+                job.Details.User == "hive" || job.Details.User == "hdfs" {
 			continue
 		}
 		if !isFinished(job) {
 			if !running[id] {
 				running[id] = true
 				// If it started in the last 30s, notify someone.
-				if job.Details.StartTime/1000 > time.Now().Unix()-30 {
+				if job.Details.StartTime/1000 > time.Now().Unix()-600 {
 					go alert(job)
 				} else {
 					s := job.Details.StartTime

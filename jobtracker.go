@@ -15,24 +15,24 @@ import (
 
 const (
 	// How parallel should we be when polling the resource manager?
-	runningJobWorkers = 3
+	runningJobWorkers = 5
 
 	// How parallel should we be when polling the history server? This is
 	// primarily useful during the inital data backfill.
-	finishedJobWorkers = 3
+	finishedJobWorkers = 300
 
 	// Maximum number of jobs to keep track of. All data is retained in memory
 	// on the server, and the details for each job are sent to the browser.
-	jobLimit = 5000
+	jobLimit = 3000
 
 	// How many hours of history should we ask for from the job server?
-	jobHistoryDuration = time.Hour * 24 * 7
+	jobHistoryDuration = time.Hour * 2
 
 	// The server will only keep partial data for finished jobs older than this.
 	// Keeping partial data reduces server memory usage. If someone tries to
 	// fetch the job from the web the full data will be requested again from the
 	// history server.
-	fullDataDuration = time.Hour * 24
+	fullDataDuration = time.Hour * 1 
 
 	// How many pairs of start/finish times should we keep around for each job?
 	taskLimit = 500
@@ -123,6 +123,7 @@ func (jt *jobTracker) Loop() {
 }
 
 func (jt *jobTracker) runningJobLoop() {
+	log.Println("run loop")
 	for x := 1; x <= runningJobWorkers; x++ {
 		go func() {
 			for job := range jt.running {
@@ -276,7 +277,9 @@ func (jt *jobTracker) cleanupLoop() {
 
 		// Enforce the job limit.
 		before := len(jt.jobs)
+		log.Printf("details length: %d.\n", len(details))
 		if len(details) > jobLimit {
+			log.Printf("entered loop\n")
 			sort.Sort(sort.Reverse(details))
 			for _, d := range details[jobLimit:] {
 				_, jobID := hadoopIDs(d.ID)
@@ -468,8 +471,18 @@ func (jt *jobTracker) fetchCounters(id string) ([]counter, error) {
 	}
 
 	var counters []counter
+	var scaldingCounters []counter
 
 	for _, group := range counterResp.JobCounters.CounterGroups {
+        	if (group.Name == "Scalding Custom") {
+                	for _, c := range group.Counters {
+                        	counterName := "scalding" + "." + c.Name
+                                scaldingCounters = append(scaldingCounters, counter{
+                                	Name: counterName,
+                                        Total: c.Total,
+				})
+			}
+		}                        	
 		splits := strings.Split(group.Name, ".")
 		groupName := splits[len(splits)-1]
 		for _, c := range group.Counters {
@@ -484,6 +497,6 @@ func (jt *jobTracker) fetchCounters(id string) ([]counter, error) {
 			}
 		}
 	}
-
+	counters = append(counters, scaldingCounters...)
 	return counters, nil
 }

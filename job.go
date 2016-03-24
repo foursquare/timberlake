@@ -19,6 +19,7 @@ type jobDetail struct {
 	State      string `json:"state"`
 	StartTime  int64  `json:"startTime"`
 	FinishTime int64  `json:"finishTime"`
+    Queue      string `json:"queue"`
 
 	MapsTotal     int     `json:"mapsTotal"`
 	MapProgress   float32 `json:"mapProgress"`

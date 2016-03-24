@@ -188,7 +188,7 @@ var Navbar = React.createClass({
       <nav className="navbar navbar-default">
         <div className="container">
           <div className="navbar-header">
-            <a className="navbar-brand" href="#">Timberlake</a>
+            <p className="navbar-brand"><a href="http://fsap3:2020/">Timberlake</a> | <a href="http://fsap3:8080/">Inviso</a></p>
           </div>
           <div className="navbar-right">
             <p className="navbar-text">mappers: {numFormat(mappers)}</p>
@@ -264,7 +264,7 @@ var JobTable = {
   sortedJobs: function() {
     var jobs = this.props.jobs.filter(j => _.contains(this.states, j.state));
     if (this.props.filter) {
-      var parts = this.props.filter.split(/\s+/);
+      var parts = lolhadoop(this.props.filter).split(/\s+/);
       jobs = jobs.filter(job => {
         return parts.every(p => job.searchString.indexOf(p) != -1);
       });
@@ -550,7 +550,8 @@ var Job = React.createClass({
     }
     var bytesReadTitle = "HDFS: " + bytes.hdfs_read + "\nS3: " + bytes.s3_read + "\nFile: " + bytes.file_read
     var bytesWrittenTitle = "HDFS: " + bytes.hdfs_written + "\nS3: " + bytes.s3_written + "\nFile: " + bytes.file_written
-
+    var scaldingPairs = job.scaldingCounters.pairs;
+    
     var rv = (
       <div>
         <div className="row">
@@ -574,11 +575,23 @@ var Job = React.createClass({
           </div>
           <div className="col-md-3 col-md-offset-1">
             <h4>Map Jobs</h4>
-            <MapSummary job={job} counters={job.counters} />
+            <MapSummary job={job} counters={job.counters} scaldingCounters={job.scaldingCounters}/>
           </div>
           <div className="col-md-3">
             <h4>Reduce Jobs</h4>
-            <ReduceSummary job={job} counters={job.counters} />
+            <ReduceSummary job={job} counters={job.counters} scaldingCounters={job.scaldingCounters}/>
+          </div>
+        </div>
+        <div className="row" style={{minHeight: 200}}>
+          <div className="col-md-5">
+            <h4>Scalding Counters</h4>
+            <div className="col-md-offset-1">
+            <table>
+            <tbody>
+            {scaldingPairs.map(t => <tr key={t[0]}><th>{t[0]}</th><td>{t[1]}</td></tr>)}
+            </tbody>
+            </table>
+            </div>
           </div>
         </div>
         <div className="row" style={{minHeight: 450}}>
@@ -835,6 +848,7 @@ var Summarizer = React.createClass({
     var computeTime = recordsPerSec ?
       <span>{humanFormat(progress.totalTime)}<br/>{numFormat(recordsPerSec)} {plural(recordsPerSec, "record")}/sec</span>
       : <span>{humanFormat(progress.totalTime)}</span>;
+    var scaldingCounters = this.props.scaldingCounters;
     var pairs = [
       ['Progress', percentFormat(progress.progress)],
       ['Total', numFormat(progress.total)],
@@ -848,7 +862,9 @@ var Summarizer = React.createClass({
     ];
     return (
       <table className="table">
-        <tbody>{pairs.map(t => <tr key={t[0]}><th>{t[0]}</th><td>{t[1]}</td></tr>)}</tbody>
+        <tbody>
+          {pairs.map(t => <tr key={t[0]}><th>{t[0]}</th><td>{t[1]}</td></tr>)}
+        </tbody>
       </table>
     );
   }
@@ -900,7 +916,8 @@ function MRJob(data) {
   this.startTime.setMilliseconds(0);
   this.finishTime = d.finishTime ? new Date(d.finishTime) : null;
   this.user = d.user;
-  this.searchString = (this.name + ' ' + this.user + ' ' + this.id).toLowerCase();
+  this.queue = d.queue;
+  this.searchString = (this.name + ' ' + this.user + ' ' + this.id + ' ' + this.queue).toLowerCase();
   this.conf = data.conf || {};
 
   this.maps = {
@@ -925,6 +942,7 @@ function MRJob(data) {
   };
 
   this.counters = new MRCounters(data.counters);
+  this.scaldingCounters = new ScaldingCounters(data.counters);
 
   var tasks = data.tasks || {};
   this.tasks = {
@@ -948,6 +966,22 @@ MRCounters.prototype = {
   }
 };
 
+function ScaldingCounters(counters) {
+  this.data = _.filter((counters || []), function(d)  {
+    return ((d.name).indexOf("scalding") > -1) 
+  });
+  this.keys = _.keys(this.data);
+  this.pairs = _.map(_.values(this.data), function(c) {
+    return [c.name, c.total];
+  })
+}
+
+ScaldingCounters.prototype = {
+  get: function(key) {
+    return this.data[key] || {};
+  }
+};
+
 function MRTask(data) {
   var [start, finish] = data;
   this.startTime = start ? new Date(start) : new Date;
@@ -960,3 +994,4 @@ MRTask.prototype = {
     return (this.finishTime || new Date) - this.startTime;
   }
 };
+
