@@ -1,6 +1,6 @@
 TRAVIS_TAG ?= $(shell git describe --tags HEAD)
 TIMBERLAKE_VERSION ?= $(TRAVIS_TAG)-$(shell go env GOOS)-$(shell go env GOARCH)
-RELEASE_NAME = timberlake-$(TIMBERLAKE_VERSION)
+RELEASE_NAME = timberlake-fsq
 
 all: test build
 

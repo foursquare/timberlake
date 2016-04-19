@@ -584,7 +584,7 @@ var Job = React.createClass({
         </div>
         <div className="row" style={{minHeight: 200}}>
           <div className="col-md-5">
-            <h4>Scalding Counters</h4>
+            <h4>Foursquare Counters</h4>
             <div className="col-md-offset-1">
             <table>
             <tbody>

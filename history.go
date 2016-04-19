@@ -219,7 +219,7 @@ func (jp *jhistParser) parse() error {
 
 		// Update any counters from the attempt.
 		for _, group := range attempt.Counters.Groups {
-			if (group.Name == "Scalding Custom") {
+			if (group.Name == "Scalding Custom" || group.Name == "mapper" || group.Name == "reducer") {
 				for _, c := range group.Counts {
 					counterName := fmt.Sprintf("%s.%s", "scalding", c.Name)
 					counter := counters[counterName]

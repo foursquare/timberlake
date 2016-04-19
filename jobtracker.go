@@ -474,7 +474,7 @@ func (jt *jobTracker) fetchCounters(id string) ([]counter, error) {
 	var scaldingCounters []counter
 
 	for _, group := range counterResp.JobCounters.CounterGroups {
-        	if (group.Name == "Scalding Custom") {
+		if (group.Name == "Scalding Custom" || group.Name == "mapper" || group.Name == "reducer") {
                 	for _, c := range group.Counters {
                         	counterName := "scalding" + "." + c.Name
                                 scaldingCounters = append(scaldingCounters, counter{
@@ -497,6 +497,7 @@ func (jt *jobTracker) fetchCounters(id string) ([]counter, error) {
 			}
 		}
 	}
+        sort.Sort(countersStruct(scaldingCounters))
 	counters = append(counters, scaldingCounters...)
 	return counters, nil
 }

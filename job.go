@@ -61,6 +61,20 @@ type counter struct {
 	Reduce int    `json:"reduce"`
 }
 
+type countersStruct []counter
+
+func (slice countersStruct) Len() int {
+        return len(slice)
+}
+
+func (slice countersStruct) Less(i, j int) bool {
+        return slice[i].Name < slice[j].Name;
+}
+
+func (slice countersStruct) Swap(i, j int) {
+        slice[i], slice[j] = slice[j], slice[i]
+}
+
 type appsResp struct {
 	Apps struct {
 		App []jobDetail `json:"app"`
