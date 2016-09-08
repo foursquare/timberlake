@@ -8,6 +8,7 @@ import (
 	"net/http/pprof"
 	"os"
 	"path/filepath"
+        "strings"
 	"time"
 
 	"github.com/zenazn/goji/bind"
@@ -105,12 +106,12 @@ func init() {
 
 func main() {
 	flag.Parse()
-
+	rms := strings.Split(*resourceManagerURL, ",")
 	if *proxyServerURL == "" {
-		proxyServerURL = resourceManagerURL
+		proxyServerURL = &rms[0]
 	}
 
-	jt = newJobTracker(*resourceManagerURL, *historyServerURL, *proxyServerURL)
+	jt = newJobTracker(rms, *historyServerURL, *proxyServerURL)
 	go jt.Loop()
 
 	if err := jt.testLogsDir(); err != nil {

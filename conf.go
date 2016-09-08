@@ -60,12 +60,20 @@ func loadConf(r io.Reader) (map[string]string, error) {
 // fetchConf pulls a job's hadoop conf from the RM.
 func (jt *jobTracker) fetchConf(id string) (map[string]string, error) {
 	appID, jobID := hadoopIDs(id)
-	url := fmt.Sprintf("%s/proxy/%s/ws/v1/mapreduce/jobs/%s/conf", jt.rm, appID, jobID)
+        set := false
 	confResp := &confResp{}
-	if err := getJSON(url, confResp); err != nil {
-		return nil, err
-	}
-
+        for _, rm := range jt.rm {
+		url := fmt.Sprintf("%s/proxy/%s/ws/v1/mapreduce/jobs/%s/conf", rm, appID, jobID)
+		if err := getJSON(url, confResp); err != nil {
+			continue
+		} else {
+                	set = true
+                	break
+                }
+        }
+        if !set {
+        	return nil, fmt.Errorf("all resource manager urls failed.")
+        }
 	conf := make(map[string]string, len(confResp.Conf.Property))
 	for _, property := range confResp.Conf.Property {
 		conf[property.Name] = property.Value

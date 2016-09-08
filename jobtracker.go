@@ -94,7 +94,7 @@ func getJSON(url string, data interface{}) error {
 type jobTracker struct {
 	jobs     map[jobID]*job
 	jobsLock sync.Mutex
-	rm       string
+	rm       []string
 	hs       string
 	ps       string
 	running  chan *job
@@ -103,7 +103,7 @@ type jobTracker struct {
 	updates  chan *job
 }
 
-func newJobTracker(rmHost string, historyHost string, proxyHost string) *jobTracker {
+func newJobTracker(rmHost []string, historyHost string, proxyHost string) *jobTracker {
 	return &jobTracker{
 		jobs:     make(map[jobID]*job),
 		rm:       rmHost,
@@ -399,14 +399,17 @@ func (jt *jobTracker) updateJob(job *job) error {
 }
 
 func (jt *jobTracker) listJobs() (*appsResp, error) {
-	url := fmt.Sprintf("%s/ws/v1/cluster/apps/?states=running,submitted,accepted,new", jt.rm)
-	resp := &appsResp{}
-	err := getJSON(url, resp)
-	if err != nil {
-		return nil, err
+	for _, rm := range jt.rm {
+        	url := fmt.Sprintf("%s/ws/v1/cluster/apps/?states=running,submitted,accepted,new", rm)
+        	resp := &appsResp{}
+        	err := getJSON(url, resp)
+        	if err != nil {
+          		continue
+        	} else {
+                	return resp, nil
+                }
 	}
-
-	return resp, nil
+	return nil, fmt.Errorf("all resource manager urls failed.")
 }
 
 func (jt *jobTracker) listFinishedJobs(since time.Time) (*jobsResp, error) {
